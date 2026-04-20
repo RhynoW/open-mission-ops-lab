@@ -1117,7 +1117,13 @@ if st.session_state.results is not None:
                     st.error(f"Failed to write orbit_3d_view.html: {e}")
                     st.stop()
 
-                static_url = "http://localhost:8501/app/static/orbit_3d_view.html"
+                try:
+                    host = st.context.headers.get("host", "localhost:8501")
+                    scheme = "http" if "localhost" in host or "127.0.0.1" in host else "https"
+                    static_url = f"{scheme}://{host}/app/static/orbit_3d_view.html"
+                except Exception:
+                    static_url = "http://localhost:8501/app/static/orbit_3d_view.html"
+
                 st.link_button("Open 3D Globe in new tab ↗", static_url)
 
                 import streamlit.components.v1 as components
