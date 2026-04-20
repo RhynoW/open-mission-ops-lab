@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Orbit 3D View</title>
+
+    <!-- CesiumJS CSS -->
+    <link
+      href="https://cesium.com/downloads/cesiumjs/releases/1.115/Build/Cesium/Widgets/widgets.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      html,
+      body,
+      #cesiumContainer {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #000;
+      }
+
+      .cesium-viewer-toolbar {
+        top: 5px;
+        left: 5px;
+      }
+
+      .orbit-info-overlay {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-family: sans-serif;
+        font-size: 12px;
+        max-width: 260px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer"></div>
+    <div class="orbit-info-overlay" id="orbitInfo">
+      Loading orbit_3d_pass.json ...
+    </div>
+
+    <!-- CesiumJS script -->
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.115/Build/Cesium/Cesium.js"></script>
+
+    <script>
+      // TODO: 用你自己的 Cesium Ion token 取代這個字串
+      // Cesium.Ion.defaultAccessToken = "YOUR_CESIUM_ION_TOKEN_HERE";
+      Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIxNDY3NzlmZi00YjUyLTQ1OTUtYTNhYi03MzQ2YTAzODRiNzQiLCJpZCI6MTE3ODQsImlhdCI6MTc3NDc5OTA3OH0.NO0-3a2HXo7Id7B4iAoed9AvP7I6g9Ufo9n9smnL1-k';
+
+      // 建立 Cesium Viewer
+      const viewer = new Cesium.Viewer("cesiumContainer", {
+        terrainProvider: Cesium.createWorldTerrain(),
+        animation: false,
+        timeline: false,
+        geocoder: false,
+        homeButton: true,
+        sceneModePicker: true,
+        navigationHelpButton: false,
+        fullscreenButton: false,
+        baseLayerPicker: true,
+      });
+
+      // 開啟地形貼地效果
+      viewer.scene.globe.depthTestAgainstTerrain = true;
+
+      const orbitInfoDiv = document.getElementById("orbitInfo");
+
+      // 從同一目錄讀取 orbit_3d_pass.json
+      fetch("orbit_3d_pass.json")
+        .then((resp) => {
+          if (!resp.ok) {
+            throw new Error("Failed to load orbit_3d_pass.json: " + resp.status);
+          }
+          return resp.json();
+        })
+        .then((data) => {
+          initOrbitScene(data);
+        })
+        .catch((err) => {
+          console.error(err);
+          orbitInfoDiv.textContent =
+            "Error loading orbit_3d_pass.json: " + err.message;
+        });
+
+      /**
+       * 初始化場景：畫出 ground track polyline + ground station point
+       * @param {Object} orbitData - 與 Python 端 orbit_data 結構一致的 JSON
+       */
+      function initOrbitScene(orbitData) {
+        try {
+          const satName = orbitData?.satellite?.name || "Satellite";
+          const gs = orbitData?.ground_station || {};
+          const passInfo = orbitData?.pass || {};
+          const track = orbitData?.track || [];
+
+          if (!Array.isArray(track) || track.length === 0) {
+            orbitInfoDiv.textContent = "orbit_3d_pass.json: no track data found.";
+            return;
+          }
+
+          // ----------------------------------------------------------
+          // 1) 構建 ground track polyline 的位置陣列
+          //    Cesium 需要 [lon1, lat1, height1, lon2, lat2, height2, ...]
+          // ----------------------------------------------------------
+          const positions = [];
+          track.forEach((p) => {
+            const lon = Number(p.sub_lon_deg);
+            const lat = Number(p.sub_lat_deg);
+            // 目前 ground track 貼地顯示，高度設為 0
+            positions.push(lon, lat, 0.0);
+          });
+
+          // 建立 polyline entity
+          const groundTrackEntity = viewer.entities.add({
+            name: satName + " ground track",
+            description: "Ground track from orbit_3d_pass.json",
+            polyline: {
+              positions: Cesium.Cartesian3.fromDegreesArrayHeights(positions),
+              width: 3.0,
+              material: Cesium.Color.RED.withAlpha(0.9),
+              clampToGround: true,
+            },
+          });
+
+          // ----------------------------------------------------------
+          // 2) Ground station entity
+          // ----------------------------------------------------------
+          if (
+            typeof gs.lon_deg === "number" &&
+            typeof gs.lat_deg === "number"
+          ) {
+            viewer.entities.add({
+              name: gs.name || "Ground Station",
+              position: Cesium.Cartesian3.fromDegrees(
+                gs.lon_deg,
+                gs.lat_deg,
+                gs.alt_m || 0.0
+              ),
+              point: {
+                pixelSize: 10,
+                color: Cesium.Color.BLUE,
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 2,
+              },
+              label: {
+                text: gs.name || "GS",
+                font: "14px sans-serif",
+                fillColor: Cesium.Color.WHITE,
+                outlineColor: Cesium.Color.BLACK,
+                outlineWidth: 2,
+                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                pixelOffset: new Cesium.Cartesian2(0, -18),
+              },
+            });
+          }
+
+          // ----------------------------------------------------------
+          // 3) 將鏡頭 zoom 到 ground track 上
+          // ----------------------------------------------------------
+          viewer.zoomTo(groundTrackEntity);
+
+          // ----------------------------------------------------------
+          // 4) 更新右上角 overlay 資訊
+          // ----------------------------------------------------------
+          const aos = passInfo.aos_utc || "";
+          const los = passInfo.los_utc || "";
+          const maxEl = passInfo.max_elevation_deg;
+          const durSec = passInfo.duration_sec;
+
+          orbitInfoDiv.innerHTML = `
+            <b>${satName}</b><br/>
+            GS: ${gs.name || ""} (${gs.lat_deg?.toFixed?.(3) ?? "?"}°, ${
+            gs.lon_deg?.toFixed?.(3) ?? "?"
+          }°)<br/>
+            AOS (UTC): ${aos}<br/>
+            LOS (UTC): ${los}<br/>
+            Max Elev: ${
+              typeof maxEl === "number" ? maxEl.toFixed(1) + "°" : "N/A"
+            }<br/>
+            Duration: ${
+              typeof durSec === "number"
+                ? (durSec / 60).toFixed(1) + " min"
+                : "N/A"
+            }
+          `;
+        } catch (e) {
+          console.error(e);
+          orbitInfoDiv.textContent = "Error in initOrbitScene: " + e.message;
+        }
+      }
+    </script>
+  </body>
+</html>

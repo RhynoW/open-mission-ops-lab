@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Streamlit generated / runtime output
+app/static/orbit_3d_view.html
+data/html/
+
+# Duplicate / backup source files
+*複製*
+app/Home_.py
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Distribution
+*.whl
+*.tar.gz
+
+# Secrets / credentials
+.env
+secrets.toml
+.streamlit/secrets.toml

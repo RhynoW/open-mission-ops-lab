@@ -1,0 +1,23 @@
+{
+  "satellite": {
+    "name": "SSO_EO_500km",
+    "tle1": "1 99999U 24001A   26001.00000000  .00000010  00000-0  50000-4 0  9998",
+    "tle2": "2 99999  97.5000  10.0000 0008000  90.0000 270.0000 15.00000000  1000",
+    "frequency_mhz": 2250.0
+  },
+  "ground_station": {
+    "name": "Taipei",
+    "lat": 25.0330,
+    "lon": 121.5654,
+    "alt_m": 10.0,
+    "min_elevation_deg": 10.0
+  },
+  "link_profile": {
+    "tx_power_dbw": 20.0,
+    "tx_gain_dbi": 5.0,
+    "rx_gain_dbi": 35.0,
+    "bandwidth_hz": 20000000.0,
+    "data_rate_bps": 10000000.0,
+    "system_temp_k": 500.0
+  }
+}

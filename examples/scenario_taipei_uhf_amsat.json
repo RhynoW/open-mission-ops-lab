@@ -1,0 +1,23 @@
+{
+  "satellite": {
+    "name": "UHF_AMSAT",
+    "tle1": "1 88888U 23001A   26001.00000000  .00000020  00000-0  40000-4 0  9991",
+    "tle2": "2 88888  98.0000  40.0000 0010000  45.0000 315.0000 14.50000000  2000",
+    "frequency_mhz": 435.0
+  },
+  "ground_station": {
+    "name": "Taipei",
+    "lat": 25.0330,
+    "lon": 121.5654,
+    "alt_m": 10.0,
+    "min_elevation_deg": 5.0
+  },
+  "link_profile": {
+    "tx_power_dbw": 5.0,
+    "tx_gain_dbi": 2.0,
+    "rx_gain_dbi": 12.0,
+    "bandwidth_hz": 12500.0,
+    "data_rate_bps": 9600.0,
+    "system_temp_k": 600.0
+  }
+}
